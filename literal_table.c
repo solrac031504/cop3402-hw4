@@ -92,7 +92,7 @@ bool literal_table_empty()
 // is the literal_table full?
 bool literal_table_full()
 {
-	bail_with_error("TODO: no implementation of literal_table_full yet!");
+//	bail_with_error("TODO: no implementation of literal_table_full yet!");
 	return false;
 }
 
@@ -106,23 +106,26 @@ void literal_table_initialize()
 // otherwise return -1.
 int literal_table_find_offset(const char *sought, word_type value)
 {
-	bail_with_error("TODO: no implementation of literal_table_find_offset yet!");
-	return 0;
+	id_use *ret = symtab_lookup(sought);
+
+	return ret->attrs->offset_count;
 }
 
 // Return true just when sought is in the table
 bool literal_table_present(const char *sought, word_type value)
 {
-	bail_with_error("TODO: no implementation of literal_table_present yet!");
-	return false;
+	return table_search(sought);
 }
 
 // Return the word offset for val_string/value
 // entering it in the table if it's not already present
 unsigned int literal_table_lookup(const char *val_string, word_type value)
 {
-	bail_with_error("TODO: no implementation of literal_table_lookup yet!");
-	return 0;
+	// if not in table, add it
+	if (!table_search(val_string))
+		table_add(val_string);
+
+	return literal_table_find_offset(val_string, value);
 }
 
 // === iteration helpers ===
