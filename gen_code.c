@@ -156,7 +156,7 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 	// PCH:(syscal)
 	
 	// ret contains the code to compute the expression
-	code_seq ret = gen_cod_expr(stmt.expr);
+	code_seq ret = gen_code_expr(stmt.expr);
 
 	// code_pop_stack_into_reg() generates code to pop the top of the stack into register
 	// Then code_seq_concat() prepares the results of the expr to be passed a an argument to a print function
