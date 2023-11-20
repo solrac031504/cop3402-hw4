@@ -152,8 +152,20 @@ code_seq gen_code_read_stmt(read_stmt_t stmt)
 // Generate code for the write statment given by stmt.
 code_seq gen_code_write_stmt(write_stmt_t stmt)
 {
-	bail_with_error("TODO: no implementation of gen_code_write_stmt yet!");
-	return code_seq_empty();
+	// put the resul tof stmt_expr into $a0 to get ready for PCH
+	// PCH:(syscal)
+	
+	// ret contains the code to compute the expression
+	code_seq ret = gen_cod_expr(stmt.expr);
+
+	// code_pop_stack_into_reg() generates code to pop the top of the stack into register
+	// Then code_seq_concat() prepares the results of the expr to be passed a an argument to a print function
+	ret = code_seq_concat(ret, code_pop_stack_into_reg(A0));
+
+	// code_seq_add_to_end() adds the print instruction to the end of the code
+	ret = code_seq_add_to_end(ret, code_pint());
+
+	return ret;
 }
 
 // Generate code for the skip statment, stmt
