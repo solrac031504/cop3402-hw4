@@ -21,45 +21,60 @@ typedef struct List
 List *table;
 
 // functions for linked list manipulation
-Node *table_create_node(Node *curr, char *data);
-void table_add(char *data);
-void table_remove(char *key);
-bool table_search(char *key);
+Node *table_create_node(Node *curr, const char *data, word_type value);
+void table_add(const char *data, word_type value);
+bool table_search_key(const char *key);
+bool table_search_word(word_type value);
 void table_destroy(Node *head);
 
-Node *table_create_node(Node *curr, char *data)
+Node *table_create_node(Node *curr, const char *data, word_type value)
 {
 	curr = malloc(sizeof(Node));
 	curr->data = malloc(sizeof(char) * (sizeof(data) + 1));
 	strcpy(curr->data, data);
+	curr->value = value;
 	curr->next = NULL;
 
 	return curr;
 }
 
-void table_add(char *data)
+void table_add(const char *data, word_type value)
 {
 	if (table->head == NULL)
 	{
-		table->head = table_create_node(table->head, data);
+		table->head = table_create_node(table->head, data, value);
 		table->tail = table->head;
 	}
 	else
 	{
-		table->tail->next = table_create_node(table->tail->next, data);
+		table->tail->next = table_create_node(table->tail->next, data, value);
 		table->tail = table->tail->next;
 	}
 
 	table->size++;
 }
 
-bool table_search(char *key)
+bool table_search_key(const char *key)
 {
 	Node *curr = table->head;
 	while (curr != NULL)
 	{
 		if (!strcmp(curr->data, key))
 			return true;
+		curr = curr->next;
+	}
+
+	return false;
+}
+
+bool table_search_word(word_type value)
+{
+	Node *curr = table->head;
+	while (curr != NULL)
+	{
+		if (curr->value == value)
+			return true;
+		curr = curr->next;
 	}
 
 	return false;
