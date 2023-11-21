@@ -4,6 +4,8 @@
 #include "literal_table.h"
 #include "utilities.h"
 
+#define MAX_TABLE_SIZE 32
+
 typedef struct Node
 {
 	char *data;
@@ -15,6 +17,7 @@ typedef struct List
 	Node *head;
 	Node *tail;
 	unsigned int size;
+	unsigned int capacity;
 } List;
 
 // literal table is in the form of a linked list
@@ -40,6 +43,12 @@ Node *table_create_node(Node *curr, const char *data, word_type value)
 
 void table_add(const char *data, word_type value)
 {
+	if (literal_table_full())
+	{
+		bail_with_error("literal table is full!");
+		return;
+	}
+	
 	if (table->head == NULL)
 	{
 		table->head = table_create_node(table->head, data, value);
@@ -107,14 +116,17 @@ bool literal_table_empty()
 // is the literal_table full?
 bool literal_table_full()
 {
-//	bail_with_error("TODO: no implementation of literal_table_full yet!");
-	return false;
+	return (table->size >= table->capacity) ? true : false;
 }
 
 // initialize the literal_table
 void literal_table_initialize()
 {
 	table = calloc(1, sizeof(List));
+	table->head = NULL;
+	table->tail = NULL;
+	table->size = 0;
+	table->capacity = MAX_TABLE_SIZE;
 }
 
 // Return the offset of sought if it is in the table,
@@ -145,6 +157,7 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
 	return literal_table_find_offset(val_string, value);
 }
 
+/*
 // === iteration helpers ===
 
 // Start an iteration over the literal table
@@ -174,3 +187,4 @@ word_type literal_table_iteration_next()
 	bail_with_error("TODO: no implementation of literal_table_iteration_next yet!");
 	return NULL;
 }
+*/
