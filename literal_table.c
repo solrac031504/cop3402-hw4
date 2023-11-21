@@ -129,7 +129,7 @@ int literal_table_find_offset(const char *sought, word_type value)
 // Return true just when sought is in the table
 bool literal_table_present(const char *sought, word_type value)
 {
-	return table_search(sought);
+	return table_search_key(sought) || table_search_word(value);
 }
 
 // Return the word offset for val_string/value
@@ -137,8 +137,10 @@ bool literal_table_present(const char *sought, word_type value)
 unsigned int literal_table_lookup(const char *val_string, word_type value)
 {
 	// if not in table, add it
-	if (!table_search(val_string))
-		table_add(val_string);
+	if (!literal_table_present(val_string, value))
+	{
+		table_add(val_string, value);
+	}
 
 	return literal_table_find_offset(val_string, value);
 }
