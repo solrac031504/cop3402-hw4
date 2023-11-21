@@ -1,3 +1,5 @@
+// Gael Adames, Kensley Cadet, Carlos Gonzalez
+
 #include <stdlib.h>
 #include <string.h>
 
