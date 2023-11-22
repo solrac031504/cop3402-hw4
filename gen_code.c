@@ -117,8 +117,36 @@ code_seq gen_code_proc_decl(proc_decl_t pd)
 // Generate code for stmt
 code_seq gen_code_stmt(stmt_t stmt)
 {
-	bail_with_error("TODO: no implementation of gen_code_stmt yet!");
-	return code_seq_empty();
+	switch (stmt.stmt_kind) 
+	{
+	    case assign_stmt:
+			return gen_code_assign_stmt(stmt.data.assign_stmt);
+			break;
+	    case call_stmt:
+			return gen_code_call_stmt(stmt.data.call_stmt);
+			break;
+	    case begin_stmt:
+			return gen_code_begin_stmt(stmt.data.begin_stmt);
+			break;
+	    case if_stmt:
+			return gen_code_if_stmt(stmt.data.if_stmt);
+			break;
+	    case while_stmt:
+			return gen_code_while_stmt(stmt.data.while_stmt);
+			break;
+		case read_stmt:
+			return gen_code_read_stmt(stmt.data.read_stmt);
+			break;
+		case write_stmt:
+			return gen_code_write_stmt(stmt.data.write_stmt);
+			break;
+		case skip_stmt:
+			return gen_code_skip_stmt(stmt.data.skip_stmt);
+	    default:
+			bail_with_error("Bad stmt passed to gen_code_stmt!");
+			// The following should never execute
+			return code_seq_empty();
+	}
 }
 
 // Generate code for stmt
