@@ -1,24 +1,45 @@
 #include "gen_code.h"
+#include "literal_table.h"
+#include "regname.h"
+#include "utilities.h"
+
+#define BLOCKS_LINK_SIZE 4
 
 // Initialize the code generator
 void gen_code_initialize()
 {
-	bail_with_error("TODO: no implementation of gen_code_initialize yet!");
+	// do nothing???
 }
 
 // Requires: bf if open for writing in binary
 // Generate code for prog into bf
 void gen_code_program(BOFFILE bf, block_t prog)
 {
-	bail_with_error("TODO: no implementation of gen_code_program yet!");
+//	bail_with_error("TODO: no implementation of gen_code_program yet!");
+
+	code_seq seq = gen_code_block(prog);
+
+	// go through seq and write to the BOFFILE
 }
 
 // Requires: bf if open for writing in binary
 // Generate code for the given AST
 code_seq gen_code_block(block_t blk)
 {
-	bail_with_error("TODO: no implementation of gen_code_block yet!");
-	return code_seq_empty();
+	code_seq ret = code_seq_singleton(code_allocate_stack_space(BLOCKS_LINK_SIZE));
+
+	//constDecls
+//	ret = code_seq_concat(ret, gen_code_const_decls(blk.const_decls));
+	// varDecls
+//	ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
+	// procDecls
+//	ret = code_seq_concat(ret, gen_code_proc_decls(blk.proc_decls));
+	// stmt
+	ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
+
+	ret = code_seq_add_to_end(ret, code_exit());
+
+	return ret;
 }
 
 // Generate code for the const-decls, cds
@@ -152,6 +173,10 @@ code_seq gen_code_read_stmt(read_stmt_t stmt)
 // Generate code for the write statment given by stmt.
 code_seq gen_code_write_stmt(write_stmt_t stmt)
 {
+/*	unsigned int ofst = literal_table_lookup(stmt.expr.text, stmt.expr.value);
+	code_lw(GP, AT, ofst);
+	code_push_reg_on_stack(AT); */
+	
 	// put the resul tof stmt_expr into $a0 to get ready for PCH
 	// PCH:(syscal)
 	
@@ -171,8 +196,10 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 // Generate code for the skip statment, stmt
 code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 {
-	bail_with_error("TODO: no implementation of gen_code_skip_stmt yet!");
-	return code_seq_empty();
+	// SRL $at, $at, 0
+	code_seq ret = code_srl(AT, AT, 0);
+
+	return ret;
 }
 
 // Requires: reg != T9
