@@ -303,8 +303,15 @@ code_seq gen_code_expr(expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
-	bail_with_error("TODO: no implementation of gen_code_binary_op_expr yet!");
-	return code_seq_empty();
+	/* design:
+        [code to push left exp's value on top of stack]
+	[code to push right exp's value on top of stack]
+	[instruction that implements the operation op]
+    */
+
+    code_seq ret = gen_code_expr(*(exp.expr1));
+    ret = code_seq_concat(ret, gen_code_expr(*(exp.expr2)));
+    return code_seq_add_to_end(ret, gen_code_arith_op(exp.arith_op));
 }
 
 // Generate code to apply arith_op to the
