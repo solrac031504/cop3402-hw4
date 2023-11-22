@@ -278,8 +278,23 @@ code_seq gen_code_rel_op(token_t rel_op)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_expr(expr_t exp)
 {
-	bail_with_error("TODO: no implementation of gen_code_expr yet!");
-	return code_seq_empty();
+	switch (exp.expr_kind) 
+	{
+	    case expr_bin:
+			return gen_code_binary_op_expr(exp.data.binary);
+			break;
+	    case expr_ident:
+			return gen_code_ident(exp.data.ident);
+			break;
+	    case expr_number:
+			return gen_code_number(exp.data.number);
+			break;
+	    default:
+			bail_with_error("gen_code_expr passed bad expr!");
+			// The following should never execute
+			return code_seq_empty();
+			break;
+    }
 }
 
 // Generate code for the expression exp
