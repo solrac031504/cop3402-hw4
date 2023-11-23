@@ -327,8 +327,29 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_arith_op(token_t arith_op)
 {
-	bail_with_error("TODO: no implementation of gen_code_arith_op yet!");
-	return code_seq_empty();
+	switch (arith_op.code) 
+	{
+	    case '+':
+	    	// ADD $V0, $AT, $V0
+			return code_add(V0, AT, V0);
+			break;
+	    case '-':
+	    	// SUB $V0, $AT, $V0
+			return code_sub(V0, AT, V0);
+			break;
+	    case '*':
+	    	// MULT $V0, $AT
+//			return code_mul(rs, rt);
+			break;
+	    case '/':
+	    	// DIV $V0, $at
+//			return code_div(rs, rt);
+			break;
+	    default:
+			bail_with_error("gen_code_arith_op passed AST with bad op!");
+			// The following should never execute
+			return code_seq_empty();
+    }
 }
 
 // Generate code to put the value of the given identifier
