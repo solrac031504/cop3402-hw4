@@ -201,21 +201,24 @@ code_seq gen_code_read_stmt(read_stmt_t stmt)
 // Generate code for the write statment given by stmt.
 code_seq gen_code_write_stmt(write_stmt_t stmt)
 {
-/*	unsigned int ofst = literal_table_lookup(stmt.expr.text, stmt.expr.value);
+// look up N in global table,
+	// receive N's offset (from $gp)
+	// generate a load instruction into some registar (say, $v0)
+	// LW $gp, $v0, offest
+	// push $v0 onto the stack
+	/*	
+	unsigned int ofst = literal_table_lookup(stmt.expr.text, stmt.expr.value);
 	code_lw(GP, AT, ofst);
-	code_push_reg_on_stack(AT); */
-	
-	// put the resul tof stmt_expr into $a0 to get ready for PCH
-	// PCH:(syscal)
-	
-	// ret contains the code to compute the expression
-	code_seq ret = gen_code_expr(stmt.expr);
+	code_push_reg_on_stack(AT); 
+	*/
 
-	// code_pop_stack_into_reg() generates code to pop the top of the stack into register
-	// Then code_seq_concat() prepares the results of the expr to be passed a an argument to a print function
+	// evalue the expression (onto the stack)
+	code_seq ret = gen_code_expr(stmt.expr);
+	
+	// pop the stack into $a0
 	ret = code_seq_concat(ret, code_pop_stack_into_reg(A0));
 
-	// code_seq_add_to_end() adds the print instruction to the end of the code
+	// PINT
 	ret = code_seq_add_to_end(ret, code_pint());
 
 	return ret;
