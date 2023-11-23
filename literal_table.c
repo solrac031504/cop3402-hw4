@@ -125,9 +125,6 @@ bool literal_table_full()
 void literal_table_initialize()
 {
 	table = calloc(1, sizeof(List));
-	table->head = NULL;
-	table->tail = NULL;
-	table->size = 0;
 	table->capacity = MAX_TABLE_SIZE;
 }
 
