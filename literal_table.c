@@ -19,7 +19,7 @@ typedef struct List
 	Node *head;
 	Node *tail;
 	unsigned int size;
-	unsigned int capacity;
+	int capacity;
 } List;
 
 // literal table is in the form of a linked list
