@@ -306,15 +306,18 @@ code_seq gen_code_expr(expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
-	/* design:
-        [code to push left exp's value on top of stack]
-	[code to push right exp's value on top of stack]
-	[instruction that implements the operation op]
-    */
-
+// code to evaluate E1
     code_seq ret = gen_code_expr(*(exp.expr1));
+    // code to evaluate E2
     ret = code_seq_concat(ret, gen_code_expr(*(exp.expr2)));
-    return code_seq_add_to_end(ret, gen_code_arith_op(exp.arith_op));
+    // code to push E2's value into $AT
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(T2));
+    // code to push E1's value into $V0
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(T1));
+    // OP $V0, $AT, $V0
+    ret = code_seq_concat(ret, gen_code_arith_op(exp.arith_op));
+    // code to push $V0 on the stack
+    return code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
 }
 
 // Generate code to apply arith_op to the
