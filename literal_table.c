@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "literal_table.h"
+#include "symtab.h"
 #include "utilities.h"
 
 #define MAX_TABLE_SIZE 32
@@ -17,11 +18,11 @@ typedef struct Node
 typedef struct LitTab
 {
 	// where the values are stored
-	Node **arr = malloc(sizeof(Node*) * MAX_TABLE_SIZE);
+	Node **arr;
 	unsigned int size;
 } LitTab;
 
-// literal table is in the form of a linked list
+// literal table is in the form of an array
 LitTab *table;
 
 // functions for linked list manipulation
@@ -29,7 +30,7 @@ Node *table_create_node(Node *curr, const char *data, word_type value);
 void table_add(const char *data, word_type value);
 bool table_search_key(const char *key);
 bool table_search_word(word_type value);
-void table_destroy();
+Node *table_destroy();
 
 Node *table_create_node(Node *curr, const char *data, word_type value)
 {
@@ -43,15 +44,17 @@ Node *table_create_node(Node *curr, const char *data, word_type value)
 
 void table_add(const char *data, word_type value)
 {
-	table->arr[size] = table_create_node(table->arr[size], data, value);
+	table->arr[table->size] = table_create_node(table->arr[table->size], data, value);
 
 	table->size++;
 }
 
 bool table_search_key(const char *key)
 {
+	if (literal_table_empty()) return false;
+	
 	int i;
-	for (i = 0; i < size; i++)
+	for (i = 0; i < literal_table_size(); i++)
 		if (!strcmp(key, table->arr[i])) 
 			return true;
 
@@ -60,24 +63,26 @@ bool table_search_key(const char *key)
 
 bool table_search_word(word_type value)
 {
+	if (literal_table_empty()) return false;
+	
 	int i;
-	for (i = 0; i < size; i++)
+	for (i = 0; i < literal_table_size(); i++)
 		if (table->arr[i] == value)
 			return true;
 
 	return false;
 }
 
-void table_destroy(Node *head)
+Node *table_destroy(Node *head)
 {
 	int i;
-	for (i = 0; i < size; i++)
+	for (i = 0; i < literal_table_size(); i++)
 	{
 		free(table->arr[i]->data);
 		free(table->arr[i]);
 	}
 
-	free(arr);
+	free(table->arr);
 	free(table);
 	return NULL;
 }
@@ -106,6 +111,7 @@ bool literal_table_full()
 void literal_table_initialize()
 {
 	table = calloc(1, sizeof(List));
+	table->arr = malloc(sizeof(Node*) * MAX_TABLE_SIZE);
 
 	// initialize from BOF's data section
 }
