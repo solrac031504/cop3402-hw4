@@ -14,23 +14,22 @@ typedef struct Node
 	struct Node *next;
 } Node;
 
-typedef struct List
+typedef struct LitTab
 {
-	Node *head;
-	Node *tail;
+	// where the values are stored
+	Node **arr = malloc(sizeof(Node*) * MAX_TABLE_SIZE);
 	unsigned int size;
-	int capacity;
-} List;
+} LitTab;
 
 // literal table is in the form of a linked list
-List *table;
+LitTab *table;
 
 // functions for linked list manipulation
 Node *table_create_node(Node *curr, const char *data, word_type value);
 void table_add(const char *data, word_type value);
 bool table_search_key(const char *key);
 bool table_search_word(word_type value);
-void table_destroy(Node *head);
+void table_destroy();
 
 Node *table_create_node(Node *curr, const char *data, word_type value)
 {
@@ -38,67 +37,49 @@ Node *table_create_node(Node *curr, const char *data, word_type value)
 	curr->data = malloc(sizeof(char) * (sizeof(data) + 1));
 	strcpy(curr->data, data);
 	curr->value = value;
-	curr->next = NULL;
 
 	return curr;
 }
 
 void table_add(const char *data, word_type value)
 {
-	if (literal_table_full())
-	{
-		bail_with_error("literal table is full!");
-		return;
-	}
-	
-	if (table->head == NULL)
-	{
-		table->head = table_create_node(table->head, data, value);
-		table->tail = table->head;
-	}
-	else
-	{
-		table->tail->next = table_create_node(table->tail->next, data, value);
-		table->tail = table->tail->next;
-	}
+	table->arr[size] = table_create_node(table->arr[size], data, value);
 
 	table->size++;
 }
 
 bool table_search_key(const char *key)
 {
-	Node *curr = table->head;
-	while (curr != NULL)
-	{
-		if (!strcmp(curr->data, key))
+	int i;
+	for (i = 0; i < size; i++)
+		if (!strcmp(key, table->arr[i])) 
 			return true;
-		curr = curr->next;
-	}
 
 	return false;
 }
 
 bool table_search_word(word_type value)
 {
-	Node *curr = table->head;
-	while (curr != NULL)
-	{
-		if (curr->value == value)
+	int i;
+	for (i = 0; i < size; i++)
+		if (table->arr[i] == value)
 			return true;
-		curr = curr->next;
-	}
 
 	return false;
 }
 
 void table_destroy(Node *head)
 {
-	if (head == NULL) return;
+	int i;
+	for (i = 0; i < size; i++)
+	{
+		free(table->arr[i]->data);
+		free(table->arr[i]);
+	}
 
-	table_destroy(head->next);
-
-	free(head->data);
-	free(head);
+	free(arr);
+	free(table);
+	return NULL;
 }
 
 // ========== BEGINNING OF LITERAL TABLE FUNCTIONS ==========
@@ -118,14 +99,15 @@ bool literal_table_empty()
 // is the literal_table full?
 bool literal_table_full()
 {
-	return (table->size >= table->capacity) ? true : false;
+	return (table->size >= MAX_TABLE_SIZE) ? true : false;
 }
 
 // initialize the literal_table
 void literal_table_initialize()
 {
 	table = calloc(1, sizeof(List));
-	table->capacity = MAX_TABLE_SIZE;
+
+	// initialize from BOF's data section
 }
 
 // Return the offset of sought if it is in the table,
