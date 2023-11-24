@@ -28,8 +28,8 @@ LitTab *table;
 // functions for linked list manipulation
 Node *table_create_node(Node *curr, const char *data, word_type value);
 void table_add(const char *data, word_type value);
-bool table_search_key(const char *key);
-bool table_search_word(word_type value);
+int table_search_key(const char *key);
+int table_search_word(word_type value);
 Node *table_destroy();
 
 Node *table_create_node(Node *curr, const char *data, word_type value)
@@ -49,28 +49,32 @@ void table_add(const char *data, word_type value)
 	table->size++;
 }
 
-bool table_search_key(const char *key)
+// returns index where value is,
+// -1 if it didn't find it
+int table_search_key(const char *key)
 {
 	if (literal_table_empty()) return false;
-	
+
 	int i;
 	for (i = 0; i < literal_table_size(); i++)
-		if (!strcmp(key, table->arr[i])) 
-			return true;
+		if (!strcmp(key, table->arr[i]->data)) 
+			return i;
 
-	return false;
+	return -1;
 }
 
-bool table_search_word(word_type value)
+// returns index where value is,
+// -1 if it didn't find it
+int table_search_word(word_type value)
 {
 	if (literal_table_empty()) return false;
-	
+
 	int i;
 	for (i = 0; i < literal_table_size(); i++)
-		if (table->arr[i] == value)
-			return true;
+		if (table->arr[i]->value == value)
+			return i;
 
-	return false;
+	return -1;
 }
 
 Node *table_destroy(Node *head)
@@ -113,7 +117,7 @@ void literal_table_initialize()
 	table = calloc(1, sizeof(List));
 	table->arr = malloc(sizeof(Node*) * MAX_TABLE_SIZE);
 
-	// initialize from BOF's data section
+	// initialize to BOF's data section
 }
 
 // Return the offset of sought if it is in the table,
@@ -121,17 +125,17 @@ void literal_table_initialize()
 int literal_table_find_offset(const char *sought, word_type value)
 {
 	// sought not in table, return -1
-	if (!table_search_key(sought)) return -1;
-	
-	id_use *ret = symtab_lookup(sought);
+	int ofst = table_search_key(sought)
+	if (ofst == -1) 
+		return -1;
 
-	return ret->attrs->offset_count;
+	return ofst;
 }
 
 // Return true just when sought is in the table
 bool literal_table_present(const char *sought, word_type value)
 {
-	return table_search_key(sought) || table_search_word(value);
+	return (table_search_key(sought) != -1) || (table_search_word(value) != -1);
 }
 
 // Return the word offset for val_string/value
