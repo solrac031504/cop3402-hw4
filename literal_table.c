@@ -132,6 +132,9 @@ void literal_table_initialize()
 // otherwise return -1.
 int literal_table_find_offset(const char *sought, word_type value)
 {
+	// sought not in table, return -1
+	if (!table_search_key(sought)) return -1;
+	
 	id_use *ret = symtab_lookup(sought);
 
 	return ret->attrs->offset_count;
