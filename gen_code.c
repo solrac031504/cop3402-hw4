@@ -14,7 +14,6 @@
 // Initialize the code generator
 void gen_code_initialize()
 {
-	printf("gen_code_initialize\n");
 	literal_table_initialize();
 }
 
@@ -74,16 +73,9 @@ static void gen_code_output_program(BOFFILE bf, code_seq main_seq)
 // Generate code for prog into bf
 void gen_code_program(BOFFILE bf, block_t prog)
 {
-	printf("gen_code_program\n");
 	literal_table_initialize();
 
 	code_seq seq = gen_code_block(prog);
-	printf("Done with generating code\n");
-
-	// load everything from the literal table into the header file
-
-	printf("\n========== Debug Print ==========\n");
-	code_seq_debug_print(stdout, seq);
 
 	gen_code_output_program(bf, seq);
 }
@@ -92,7 +84,7 @@ void gen_code_program(BOFFILE bf, block_t prog)
 // Generate code for the given AST
 code_seq gen_code_block(block_t blk)
 {
-	printf("gen_code_block\n");
+	code_seq = code_seq_empty();
 	//constDecls
 //	code_seq ret = gen_code_const_decls(blk.const_decls)
 	// varDecls
@@ -100,8 +92,7 @@ code_seq gen_code_block(block_t blk)
 	// procDecls
 //	ret = code_seq_concat(ret, gen_code_proc_decls(blk.proc_decls));
 	// stmt
-//	ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
-	code_seq ret = gen_code_stmt(blk.stmt);
+	ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
 
 	ret = code_seq_add_to_end(ret, code_exit());
 
@@ -185,7 +176,6 @@ code_seq gen_code_proc_decl(proc_decl_t pd)
 // Generate code for stmt
 code_seq gen_code_stmt(stmt_t stmt)
 {
-	printf("gen_code_stmt\n");
 	switch (stmt.stmt_kind) 
 	{
 	    case assign_stmt:
@@ -249,7 +239,6 @@ code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 // Generate code for the list of statments given by stmts
 code_seq gen_code_stmts(stmts_t stmts)
 {
-	printf("gen_code_stmts\n");
 	code_seq ret;
 	stmt_t *temp = stmts.stmts;
 
@@ -290,7 +279,6 @@ code_seq gen_code_read_stmt(read_stmt_t stmt)
 // Generate code for the write statment given by stmt.
 code_seq gen_code_write_stmt(write_stmt_t stmt)
 {	
-	printf("gen_code_write_stmt\n");
 	// look up N in global table,
 	// receive N's offset (from $gp)
 	// generate a load instruction into some registar (say, $v0)
@@ -317,7 +305,6 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 // Generate code for the skip statment, stmt
 code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 {
-	printf("gen_code_skip_stmt\n");
 	// SRL $at, $at, 0
 	code_seq ret = code_srl(AT, AT, 0);
 
@@ -331,7 +318,6 @@ code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 // May modify HI,LO when executed
 code_seq gen_code_condition(condition_t cond)
 {
-	printf("gen_code_condition\n");
 	switch(cond.cond_kind)
 	{
 		case ck_odd:
@@ -388,7 +374,6 @@ code_seq gen_code_rel_op(token_t rel_op)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_expr(expr_t exp)
 {
-	printf("gen_code_expr\n");
 	switch (exp.expr_kind) 
 	{
 	    case expr_bin:
@@ -414,7 +399,6 @@ code_seq gen_code_expr(expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
-	printf("gen_code_binary_op_expr\n");
 	// code to evaluate E1
     code_seq ret = gen_code_expr(*(exp.expr1));
     // code to evaluate E2
@@ -436,7 +420,6 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_arith_op(token_t arith_op)
 {
-	printf("gen_code_arith_op");
 //	code_seq ret;
 	switch (arith_op.code) 
 	{
@@ -477,7 +460,6 @@ code_seq gen_code_arith_op(token_t arith_op)
 // Modifies T9, V0, and SP when executed
 code_seq gen_code_ident(ident_t id)
 {
-	printf("gen_code_ident\n");
 	// no procedures, FP is the frame pointer for the AR
 
 	// There are 2 instructions generated for each identifier declared
@@ -500,7 +482,6 @@ code_seq gen_code_ident(ident_t id)
 // Generate code to put the given number on top of the stack
 code_seq gen_code_number(number_t num)
 {
-	printf("gen_code_number\n");
 	unsigned int ofst = literal_table_lookup(num.text, num.value);
     return code_seq_concat(code_seq_singleton(code_lw(GP, V0, ofst)), code_push_reg_on_stack(V0));
 }
