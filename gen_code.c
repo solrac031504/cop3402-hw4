@@ -1,41 +1,107 @@
+// based on Float Calculator Example
+
+#include <string.h>
+
 #include "gen_code.h"
+#include "id_attrs.h"
+#include "id_use.h"
 #include "literal_table.h"
 #include "regname.h"
 #include "utilities.h"
 
-#define BLOCKS_LINK_SIZE 4
+#define STACK_SPACE 4096
 
 // Initialize the code generator
 void gen_code_initialize()
 {
-	// do nothing???
+	printf("gen_code_initialize\n");
+	literal_table_initialize();
+}
+
+// Write all the instructions in code to bf in order
+static void gen_code_output_seq(BOFFILE bf, code_seq code)
+{
+	while(!code_seq_is_empty(code))
+	{
+		bin_instr_t inst = code_seq_first(code)->instr;
+		instruction_write_bin_instr(bf, inst);
+		code = code_seq_rest(code);
+	}
+}
+
+int max(int val1, int val2)
+{
+	return (val1 >= val2) ? val1 : val2;
+}
+
+// return a header appropriate for the given code
+static BOFHeader gen_code_program_header(code_seq code)
+{
+	BOFHeader ret;
+    strcpy(ret.magic, "BOF");
+    ret.text_start_address = 0;
+    ret.text_length = code_seq_size(code) * BYTES_PER_WORD;
+    int dsa = max(ret.text_length, 1024);
+    ret.data_start_address = dsa;
+    ret.data_length = literal_table_size() * BYTES_PER_WORD;
+    int sba = dsa + ret.data_start_address + ret.data_length + STACK_SPACE;
+    ret.stack_bottom_addr = sba;
+    return ret;
+}
+
+// writes literals to the data section of the bf
+static void gen_code_output_literals(BOFFILE bf)
+{
+	literal_table_start_iteration();
+	while(literal_table_iteration_has_next())
+	{
+		word_type val = literal_table_iteration_next();
+		bof_write_word(bf, val);
+	}
+	literal_table_end_iteration();
+}
+
+static void gen_code_output_program(BOFFILE bf, code_seq main_seq)
+{
+	BOFHeader bfh = gen_code_program_header(main_seq);
+	bof_write_header(bf, bfh);
+	gen_code_output_seq(bf, main_seq);
+	gen_code_output_literals(bf);
+	bof_close(bf);
 }
 
 // Requires: bf if open for writing in binary
 // Generate code for prog into bf
 void gen_code_program(BOFFILE bf, block_t prog)
 {
-//	bail_with_error("TODO: no implementation of gen_code_program yet!");
+	printf("gen_code_program\n");
+	literal_table_initialize();
 
 	code_seq seq = gen_code_block(prog);
+	printf("Done with generating code\n");
 
-	// go through seq and write to the BOFFILE
+	// load everything from the literal table into the header file
+
+	printf("\n========== Debug Print ==========\n");
+	code_seq_debug_print(stdout, seq);
+
+	gen_code_output_program(bf, seq);
 }
 
 // Requires: bf if open for writing in binary
 // Generate code for the given AST
 code_seq gen_code_block(block_t blk)
 {
-	code_seq ret = code_seq_singleton(code_allocate_stack_space(BLOCKS_LINK_SIZE));
-
+	printf("gen_code_block\n");
 	//constDecls
-//	ret = code_seq_concat(ret, gen_code_const_decls(blk.const_decls));
+//	code_seq ret = gen_code_const_decls(blk.const_decls)
 	// varDecls
 //	ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
 	// procDecls
 //	ret = code_seq_concat(ret, gen_code_proc_decls(blk.proc_decls));
 	// stmt
-	ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
+//	ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
+	code_seq ret = gen_code_stmt(blk.stmt);
 
 	ret = code_seq_add_to_end(ret, code_exit());
 
@@ -100,6 +166,7 @@ code_seq gen_code_idents(idents_t idents)
 	return code_seq_empty();
 }
 
+// dont need to implement
 // (Stub for:) Generate code for the procedure declarations
 code_seq gen_code_proc_decls(proc_decls_t pds)
 {
@@ -107,6 +174,7 @@ code_seq gen_code_proc_decls(proc_decls_t pds)
 	return code_seq_empty();
 }
 
+// don't need to implement
 // (Stub for:) Generate code for a procedure declaration
 code_seq gen_code_proc_decl(proc_decl_t pd)
 {
@@ -117,6 +185,7 @@ code_seq gen_code_proc_decl(proc_decl_t pd)
 // Generate code for stmt
 code_seq gen_code_stmt(stmt_t stmt)
 {
+	printf("gen_code_stmt\n");
 	switch (stmt.stmt_kind) 
 	{
 	    case assign_stmt:
@@ -152,10 +221,17 @@ code_seq gen_code_stmt(stmt_t stmt)
 // Generate code for stmt
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
+	// x := E
+	// suppose offset for x is ofset (from id_use)
+	// evaluate E onto the stack
+	// get the frame pointer for x's location into a register, $t9
+	// pop the stack into $at
+	// SW $t9, $at, ofst
 	bail_with_error("TODO: no implementation of gen_code_assign_stmt yet!");
 	return code_seq_empty();
 }
 
+// don't need to implement
 // Generate code for stmt
 code_seq gen_code_call_stmt(call_stmt_t stmt)
 {
@@ -173,14 +249,23 @@ code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 // Generate code for the list of statments given by stmts
 code_seq gen_code_stmts(stmts_t stmts)
 {
-	bail_with_error("TODO: no implementation of gen_code_stmts yet!");
-	return code_seq_empty();
+	printf("gen_code_stmts\n");
+	code_seq ret;
+	stmt_t *temp = stmts.stmts;
+
+	while(temp != NULL)
+	{
+		ret = code_seq_concat(ret, gen_code_stmt(*temp));
+		temp = temp->next;
+	}
+
+	return ret;
 }
 
 // Generate code for the if-statment given by stmt
 code_seq gen_code_if_stmt(if_stmt_t stmt)
 {
-	bail_with_error("TODO: no implementation of gen_code_if_stmt yet!");
+	
 	return code_seq_empty();
 }
 
@@ -194,14 +279,19 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 // Generate code for the read statment given by stmt
 code_seq gen_code_read_stmt(read_stmt_t stmt)
 {
+	// suppose offset for x is oft (from id_use)
+	// RCH # puts char read into $v0
+	// get the frame pointer for x's location into a register, $t9
+	// SW $t9, $v0, ofst
 	bail_with_error("TODO: no implementation of gen_code_read_stmt yet!");
 	return code_seq_empty();
 }
 
 // Generate code for the write statment given by stmt.
 code_seq gen_code_write_stmt(write_stmt_t stmt)
-{
-// look up N in global table,
+{	
+	printf("gen_code_write_stmt\n");
+	// look up N in global table,
 	// receive N's offset (from $gp)
 	// generate a load instruction into some registar (say, $v0)
 	// LW $gp, $v0, offest
@@ -214,7 +304,7 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 
 	// evalue the expression (onto the stack)
 	code_seq ret = gen_code_expr(stmt.expr);
-	
+
 	// pop the stack into $a0
 	ret = code_seq_concat(ret, code_pop_stack_into_reg(A0));
 
@@ -227,6 +317,7 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 // Generate code for the skip statment, stmt
 code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 {
+	printf("gen_code_skip_stmt\n");
 	// SRL $at, $at, 0
 	code_seq ret = code_srl(AT, AT, 0);
 
@@ -240,8 +331,19 @@ code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 // May modify HI,LO when executed
 code_seq gen_code_condition(condition_t cond)
 {
-	bail_with_error("TODO: no implementation of gen_code_condition yet!");
-	return code_seq_empty();
+	printf("gen_code_condition\n");
+	switch(cond.cond_kind)
+	{
+		case ck_odd:
+			return gen_code_odd_condition(cond.data.odd_cond);
+			break;
+		case ck_rel:
+			return gen_code_rel_op_condition(cond.data.rel_op_cond);
+			break;
+		default:
+			bail_with_error("Bad cond passed to gen_code_condition");
+			return code_seq_empty();
+	}
 }
 
 // Generate code for cond, putting its truth value
@@ -250,6 +352,11 @@ code_seq gen_code_condition(condition_t cond)
 // Modifies SP, HI,LO when executed
 code_seq gen_code_odd_condition(odd_condition_t cond)
 {
+	// Evaluate E1 to top of stack
+	// pop top of stack (E1's value) into $v0
+	// jump past 2 instrs
+	// if GPR[$v0] % 2 == 0
+	// HI = E1 % E2
 	bail_with_error("TODO: no implementation of gen_code_odd_condition yet!");
 	return code_seq_empty();
 }
@@ -281,6 +388,7 @@ code_seq gen_code_rel_op(token_t rel_op)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_expr(expr_t exp)
 {
+	printf("gen_code_expr\n");
 	switch (exp.expr_kind) 
 	{
 	    case expr_bin:
@@ -306,7 +414,8 @@ code_seq gen_code_expr(expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
-// code to evaluate E1
+	printf("gen_code_binary_op_expr\n");
+	// code to evaluate E1
     code_seq ret = gen_code_expr(*(exp.expr1));
     // code to evaluate E2
     ret = code_seq_concat(ret, gen_code_expr(*(exp.expr2)));
@@ -327,6 +436,8 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_arith_op(token_t arith_op)
 {
+	printf("gen_code_arith_op");
+//	code_seq ret;
 	switch (arith_op.code) 
 	{
 	    case '+':
@@ -339,17 +450,26 @@ code_seq gen_code_arith_op(token_t arith_op)
 			break;
 	    case '*':
 	    	// MULT $V0, $AT
-//			return code_mul(rs, rt);
+	    	// use MFHI and MFLO
+//			ret = code_mul(V0, AT);
+//			ret = code_seq_concat(ret, code_push_reg_on_stack(LO));
+//			return code_seq_add_to_end(ret, code_push_reg_on_stack(HI));
 			break;
 	    case '/':
 	    	// DIV $V0, $at
-//			return code_div(rs, rt);
+	    	// use MFHI and MFLO
+//			ret = code_div(V0, AT);
+//			ret = code_seq_concat(ret, code_push_reg_on_stack(LO));
+//			return code_seq_add_to_end(ret, code_push_reg_on_stack(HI));
 			break;
 	    default:
 			bail_with_error("gen_code_arith_op passed AST with bad op!");
 			// The following should never execute
 			return code_seq_empty();
     }
+
+    // to get rid of warnings
+    return code_seq_empty();
 }
 
 // Generate code to put the value of the given identifier
@@ -357,13 +477,30 @@ code_seq gen_code_arith_op(token_t arith_op)
 // Modifies T9, V0, and SP when executed
 code_seq gen_code_ident(ident_t id)
 {
-	bail_with_error("TODO: no implementation of gen_code_ident yet!");
-	return code_seq_empty();
+	printf("gen_code_ident\n");
+	// no procedures, FP is the frame pointer for the AR
+
+	// There are 2 instructions generated for each identifier declared
+	// (one to allocate space and another to initialize that space)
+
+	// allocate space
+	code_seq ret = code_addi(SP, SP, -4);
+
+	// initialize that space (below)
+	// get offset of id from the literal table
+	unsigned short ofst = id_use_get_attrs(id.idu)->offset_count;
+	// LW $fp, $at, ofst
+	ret = code_lw(FP, V0, ofst);
+	// push reg onto stack
+	ret = code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
+
+	return ret;
 }
 
 // Generate code to put the given number on top of the stack
 code_seq gen_code_number(number_t num)
 {
-	bail_with_error("TODO: no implementation of gen_code_number yet!");
-	return code_seq_empty();
+	printf("gen_code_number\n");
+	unsigned int ofst = literal_table_lookup(num.text, num.value);
+    return code_seq_concat(code_seq_singleton(code_lw(GP, V0, ofst)), code_push_reg_on_stack(V0));
 }
