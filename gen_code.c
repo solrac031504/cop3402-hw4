@@ -353,8 +353,14 @@ code_seq gen_code_odd_condition(odd_condition_t cond)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_rel_op_condition(rel_op_condition_t cond)
 {
-	bail_with_error("TODO: no implementation of gen_code_rel_op_condition yet!");
-	return code_seq_empty();
+	// code to evaluate E1
+    code_seq ret = gen_code_expr(cond.expr1);
+    // code to evaluate E2
+    ret = code_seq_concat(ret, gen_code_expr(cond.expr2));
+    // check that the types match
+    assert(cond.expr1.expr_kind == cond.expr2.expr_kind);
+    // do the operation, put the result on the stack
+    return code_seq_concat(ret, gen_code_rel_op(cond.rel_op));
 }
 
 // Generate code for the rel_op
@@ -364,8 +370,69 @@ code_seq gen_code_rel_op_condition(rel_op_condition_t cond)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_rel_op(token_t rel_op)
 {
-	bail_with_error("TODO: no implementation of gen_code_rel_op yet!");
-	return code_seq_empty();
+	// code to push E2's value into $AT
+    code_seq ret = code_pop_stack_into_reg(AT);
+    // code to push E1's value into $V0
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+
+    code_seq do_op = code_seq_empty();
+	switch (rel_op.code) 
+	{
+	    case neqsym:
+	    	// if GPR[$v0] != GPR[$at]
+	    	// BNE $v0, $at, 2
+			do_op = code_seq_singleton(code_bne(V0, AT, 2));
+			break;
+	    case eqsym:
+	    	// if GPR[$v0] == GPR[$at]
+	    	// BEQ $v0, $at, 2
+	    	do_op = code_seq_singleton(code_beq(V0, AT, 2));
+			break;
+	    case ltsym:
+	    	// $v0 = E1 - E2
+	    	// if GPR[$v0] < 0
+			do_op = code_seq_singleton(code_sub(V0, AT, V0));
+			do_op = code_seq_add_to_end(do_op, code_bltz(V0, 2));
+			break;
+	    case leqsym:
+	    	// $v0 = E1 - E2
+	    	// if GPR[$v0] <= 0
+	    	do_op = code_seq_singleton(code_sub(V0, AT, V0));
+			do_op = code_seq_add_to_end(do_op, code_blez(V0, 2));
+			break;
+		case gtsym:
+			// $v0 = E1 - E2
+			// if GPR[$v0] > 0
+			do_op = code_seq_singleton(code_sub(V0, AT, V0));
+			do_op = code_seq_add_to_end(do_op, code_bgtz(V0, 2));
+			break;
+		case geqsym:
+			// $v0 = E1 - E2
+			// if GPR[$v0] >= 0
+			do_op = code_seq_singleton(code_sub(V0, AT, V0));
+			do_op = code_seq_add_to_end(do_op, code_bgez(V0, 2));
+			break;
+	    default:
+			bail_with_error("gen_code_rel_op passed AST with bad op!");
+			// The following should never execute
+			return code_seq_empty();
+    }
+
+    ret = code_seq_concat(ret, do_op);
+
+    // put 0 (false) in $v0
+    // ADD $0, $0, $v0
+    ret = code_seq_add_to_end(ret, code_add(0, 0, V0));
+    // jump over next instr
+    // BEQ $0, $0, 1
+    ret = code_seq_add_to_end(ret, code_beq(0, 0, 1));
+    // put 1 (true) in $v0
+    // ADDI $0, $v0, 1
+    ret = code_seq_add_to_end(ret, code_addi(0, V0, 1));
+    // now $v0 has the truth value
+    // code to push $v0 on top of stack
+    ret = code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
+    return ret;
 }
 
 // Generate code for the expression exp
