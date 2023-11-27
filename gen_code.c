@@ -286,8 +286,7 @@ code_seq gen_code_call_stmt(call_stmt_t stmt)
 // Generate code for stmt
 code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 {
-	bail_with_error("TODO: no implementation of gen_code_begin_stmt yet!");
-	return code_seq_empty();
+	return gen_code_begin_stmt(stmt.stmts);
 }
 
 // Generate code for the list of statments given by stmts
