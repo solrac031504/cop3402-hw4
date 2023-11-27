@@ -286,7 +286,7 @@ code_seq gen_code_call_stmt(call_stmt_t stmt)
 // Generate code for stmt
 code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 {
-	return gen_code_begin_stmt(stmt.stmts);
+	return gen_code_stmts(stmt.stmts);
 }
 
 // Generate code for the list of statments given by stmts
