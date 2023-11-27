@@ -156,7 +156,6 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
 code_seq gen_code_const_def(const_def_t cdf)
 {
 	code_seq ret = code_seq_empty();
-	ident_t id = cdf.ident;
 	number_t num = cdf.number;
 
 	unsigned int ofst = literal_table_lookup(num.text, num.value);
