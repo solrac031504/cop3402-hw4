@@ -322,7 +322,6 @@ code_seq gen_code_if_stmt(if_stmt_t stmt)
 {
 	// put truth value of stmt.expr in $v0
 	code_seq ret = gen_code_condition(stmt.condition);
-	ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
 
 	code_seq cthen = gen_code_stmt(*(stmt.then_stmt));
 	code_seq celse = gen_code_stmt(*(stmt.else_stmt));
