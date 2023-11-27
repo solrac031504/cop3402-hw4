@@ -570,8 +570,6 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
     code_seq ret = gen_code_expr(*(exp.expr1));
     // code to evaluate E2
     ret = code_seq_concat(ret, gen_code_expr(*(exp.expr2)));
-    // check that the types match
-    assert(exp.expr1->expr_kind == exp.expr2->expr_kind);
     // do the operation, put the result on the stack
     return code_seq_concat(ret, gen_code_arith_op(exp.arith_op));
 }
