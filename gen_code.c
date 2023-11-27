@@ -97,6 +97,7 @@ code_seq gen_code_block(block_t blk)
 //	const_seq proc_seq = code_seq_concat(ret, gen_code_proc_decls(blk.proc_decls));
 //	int procs_len_in_bytes = (code_seq_size(var_seq) / 2) * BYTES_PER_WORD;
 	
+	ret = code_seq_concat(ret, code_allocate_stack_space(consts_len_in_bytes + vars_len_in_bytes));
 	// to get layout 2, do the vars before the consts
 	ret = code_seq_concat(ret, code_seq_concat(var_seq, const_seq));
 	ret = code_seq_concat(ret, code_save_registers_for_AR());
@@ -154,9 +155,16 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
 // Generate code for the const-def, cdf
 code_seq gen_code_const_def(const_def_t cdf)
 {
-	code_seq ret = gen_code_ident(cdf.ident);
-	ret = code_seq_concat(ret, gen_code_number(cdf.number));
-	return code_seq_empty();
+	code_seq ret = code_seq_empty();
+	ident_t id = cdf.ident;
+	number_t num = cdf.number;
+
+	unsigned int ofst = literal_table_lookup(num.text, num.value);
+
+	ret = code_seq_concat(ret, code_lw(GP, AT, ofst));
+	ret = code_seq_add_to_end(ret, code_sw(SP, AT, 0));
+
+	return ret;
 }
 
 // Generate code for the var_decls_t vds to out
@@ -192,13 +200,19 @@ code_seq gen_code_var_decl(var_decl_t vd)
 // (one to allocate space and another to initialize that space)
 code_seq gen_code_idents(idents_t idents)
 {
+// code for initializing vars
 	code_seq ret = code_seq_empty();
-    ident_t *id = idents.idents;
+    ident_t *idp = idents.idents;
 
-    while (id != NULL) 
+    while (idp != NULL) 
     {
-		ret = code_seq_concat(ret, gen_code_ident(*id));
-		id = id->next;
+	code_seq alloc_and_init = code_seq_singleton(code_addi(SP, SP, -4));
+	alloc_and_init = code_seq_add_to_end(alloc_and_init, code_sw(SP, 0, 0));
+		
+	// Generate these in revese order,
+	// so addressing works propertly
+	ret = code_seq_concat(alloc_and_init, ret);
+	idp = idp->next;
     }
 
     return ret;
