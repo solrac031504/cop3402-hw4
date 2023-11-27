@@ -1,5 +1,6 @@
 // based on Float Calculator Example
 
+#include <limits.h>
 #include <string.h>
 
 #include "gen_code.h"
@@ -84,16 +85,27 @@ void gen_code_program(BOFFILE bf, block_t prog)
 // Generate code for the given AST
 code_seq gen_code_block(block_t blk)
 {
-	code_seq = code_seq_empty();
+	code_seq ret = code_seq_empty();
+
 	//constDecls
-//	code_seq ret = gen_code_const_decls(blk.const_decls)
+	code_seq const_seq = gen_code_const_decls(blk.const_decls);
+	int consts_len_in_bytes = (code_seq_size(const_seq) / 2) * BYTES_PER_WORD;
 	// varDecls
-//	ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
+	code_seq var_seq = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
+	int vars_len_in_bytes = (code_seq_size(var_seq) / 2) * BYTES_PER_WORD;
 	// procDecls
-//	ret = code_seq_concat(ret, gen_code_proc_decls(blk.proc_decls));
+//	const_seq proc_seq = code_seq_concat(ret, gen_code_proc_decls(blk.proc_decls));
+//	int procs_len_in_bytes = (code_seq_size(var_seq) / 2) * BYTES_PER_WORD;
+	
+	// to get layout 2, do the vars before the consts
+	ret = code_seq_concat(ret, code_seq_concat(var_seq, const_seq));
+	ret = code_seq_concat(ret, code_save_registers_for_AR());
 	// stmt
 	ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
+	ret = code_seq_concat(ret, code_restore_registers_from_AR());
+	ret = code_seq_concat(ret, code_deallocate_stack_space(consts_len_in_bytes + vars_len_in_bytes));
 
+	// HALT
 	ret = code_seq_add_to_end(ret, code_exit());
 
 	return ret;
@@ -104,28 +116,46 @@ code_seq gen_code_block(block_t blk)
 // (one to allocate space and two to initialize that space)
 code_seq gen_code_const_decls(const_decls_t cds)
 {
-	bail_with_error("TODO: no implementation of gen_code_const_decls yet!");
-	return code_seq_empty();
+	code_seq ret = code_seq_empty();
+    const_decl_t *cd = cds.const_decls;
+
+    while (cd != NULL) 
+    {
+		ret = code_seq_concat(ret, gen_code_const_decl(*cd));
+		cd = cd->next;
+    }
+
+    return ret;
 }
 
 // Generate code for the const-decl, cd
 code_seq gen_code_const_decl(const_decl_t cd)
 {
-	bail_with_error("TODO: no implementation of gen_code_const_decl yet!");
-	return code_seq_empty();
+	return gen_code_const_defs(cd.const_defs);
 }
 
 // Generate code for the const-defs, cdfs
 code_seq gen_code_const_defs(const_defs_t cdfs)
 {
-	bail_with_error("TODO: no implementation of gen_code_const_defs yet!");
-	return code_seq_empty();
+	code_seq ret = code_seq_empty();
+    const_def_t *cdf = cdfs.const_defs;
+
+    while (cdf != NULL) 
+    {
+    	// generate these in reverse order,
+		// so the addressing offsets work properly
+		ret = code_seq_concat(gen_code_const_def(*cdf), ret);
+		cdf = cdf->next;
+    }
+
+    return ret;
 }
 
 // Generate code for the const-def, cdf
 code_seq gen_code_const_def(const_def_t cdf)
 {
-	bail_with_error("TODO: no implementation of gen_code_const_def yet!");
+	code_seq ret = gen_code_ident(cdf.ident);
+	ret = code_seq_concat(ret, gen_code_number(cdf.number));
 	return code_seq_empty();
 }
 
@@ -134,8 +164,18 @@ code_seq gen_code_const_def(const_def_t cdf)
 // (one to allocate space and another to initialize that space)
 code_seq gen_code_var_decls(var_decls_t vds)
 {
-	bail_with_error("TODO: no implementation of gen_code_var_decls yet!");
-	return code_seq_empty();
+	code_seq ret = code_seq_empty();
+    var_decl_t *vd = vds.var_decls;
+
+    while (vd != NULL) 
+    {
+		// generate these in reverse order,
+		// so the addressing offsets work properly
+		ret = code_seq_concat(gen_code_var_decl(*vd), ret);
+		vd = vd->next;
+    }
+
+    return ret;
 }
 
 // Generate code for a single <var-decl>, vd,
@@ -143,8 +183,7 @@ code_seq gen_code_var_decls(var_decls_t vds)
 // (one to allocate space and another to initialize that space)
 code_seq gen_code_var_decl(var_decl_t vd)
 {
-	bail_with_error("TODO: no implementation of gen_code_var_decl yet!");
-	return code_seq_empty();
+	return gen_code_idents(vd.idents);
 }
 
 // Generate code for the identififers in idents
@@ -153,8 +192,16 @@ code_seq gen_code_var_decl(var_decl_t vd)
 // (one to allocate space and another to initialize that space)
 code_seq gen_code_idents(idents_t idents)
 {
-	bail_with_error("TODO: no implementation of gen_code_idents yet!");
-	return code_seq_empty();
+	code_seq ret = code_seq_empty();
+    ident_t *id = idents.idents;
+
+    while (id != NULL) 
+    {
+		ret = code_seq_concat(ret, gen_code_ident(*id));
+		id = id->next;
+    }
+
+    return ret;
 }
 
 // dont need to implement
@@ -213,12 +260,19 @@ code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
 	// x := E
 	// suppose offset for x is ofset (from id_use)
+	assert(stmt.idu != NULL);
+	assert(id_use_get_attrs(stmt.idu) != NULL);
+	unsigned int ofst = id_use_get_attrs(stmt.idu)->offset_count;
 	// evaluate E onto the stack
+	code_seq ret = gen_code_expr(*(stmt.expr));
 	// get the frame pointer for x's location into a register, $t9
+	ret = code_seq_concat(ret, code_compute_fp(T9, stmt.idu->levelsOutward));
 	// pop the stack into $at
+	ret = code_seq_concat(ret, code_pop_stack_into_reg(AT));
 	// SW $t9, $at, ofst
-	bail_with_error("TODO: no implementation of gen_code_assign_stmt yet!");
-	return code_seq_empty();
+	ret = code_seq_concat(ret, code_sw(T9, AT, ofst));
+	
+	return ret;
 }
 
 // don't need to implement
@@ -239,23 +293,37 @@ code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 // Generate code for the list of statments given by stmts
 code_seq gen_code_stmts(stmts_t stmts)
 {
-	code_seq ret;
-	stmt_t *temp = stmts.stmts;
+	code_seq ret = code_seq_empty();
+    stmt_t *sp = stmts.stmts;
 
-	while(temp != NULL)
-	{
-		ret = code_seq_concat(ret, gen_code_stmt(*temp));
-		temp = temp->next;
-	}
+    while (sp != NULL) 
+    {
+		ret = code_seq_concat(ret, gen_code_stmt(*sp));
+		sp = sp->next;
+    }
 
-	return ret;
+    return ret;
 }
 
 // Generate code for the if-statment given by stmt
 code_seq gen_code_if_stmt(if_stmt_t stmt)
 {
-	
-	return code_seq_empty();
+	// put truth value of stmt.expr in $v0
+	code_seq ret = gen_code_condition(stmt.condition);
+	ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+
+	code_seq cthen = gen_code_stmt(*(stmt.then_stmt));
+	code_seq celse = gen_code_stmt(*(stmt.else_stmt));
+
+	int cthen_len = code_seq_size(cthen);
+	int celse_len = code_seq_size(celse);
+	// skip over then (body) if $v0 contains false
+	ret = code_seq_concat(ret, code_beq(V0, 0, cthen_len));
+	ret = code_seq_concat(ret, cthen);
+
+	// skip else if $v0 is true ($v0 is not 0)
+	ret = code_seq_add_to_end(ret, code_bne(V0, 0, celse_len));
+	return code_seq_concat(ret, celse);
 }
 
 // Generate code for the if-statment given by stmt
@@ -269,28 +337,23 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 code_seq gen_code_read_stmt(read_stmt_t stmt)
 {
 	// suppose offset for x is oft (from id_use)
+	assert(stmt.idu != NULL);
+	assert(id_use_get_attrs(stmt.idu) != NULL);
+	unsigned int ofst = id_use_get_attrs(stmt.idu)->offset_count;
 	// RCH # puts char read into $v0
+	code_seq ret = code_rch();
 	// get the frame pointer for x's location into a register, $t9
+	ret = code_seq_concat(ret, code_compute_fp(T9, stmt.idu->levelsOutward));
 	// SW $t9, $v0, ofst
-	bail_with_error("TODO: no implementation of gen_code_read_stmt yet!");
-	return code_seq_empty();
+	ret = code_seq_concat(ret, code_sw(T9, V0, ofst));
+	
+	return ret;
 }
 
 // Generate code for the write statment given by stmt.
 code_seq gen_code_write_stmt(write_stmt_t stmt)
 {	
-	// look up N in global table,
-	// receive N's offset (from $gp)
-	// generate a load instruction into some registar (say, $v0)
-	// LW $gp, $v0, offest
-	// push $v0 onto the stack
-	/*	
-	unsigned int ofst = literal_table_lookup(stmt.expr.text, stmt.expr.value);
-	code_lw(GP, AT, ofst);
-	code_push_reg_on_stack(AT); 
-	*/
-
-	// evalue the expression (onto the stack)
+	// evaluate the expression (onto the stack)
 	code_seq ret = gen_code_expr(stmt.expr);
 
 	// pop the stack into $a0
@@ -339,12 +402,37 @@ code_seq gen_code_condition(condition_t cond)
 code_seq gen_code_odd_condition(odd_condition_t cond)
 {
 	// Evaluate E1 to top of stack
+	code_seq ret = gen_code_expr(cond.expr);
 	// pop top of stack (E1's value) into $v0
+	ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
 	// jump past 2 instrs
 	// if GPR[$v0] % 2 == 0
+	// $at = 2
+	// ADDI AT, AT, 2
+	code_seq do_op = code_seq_singleton(code_addi(AT, AT, 2));
+	// DIV $v0, $at
+	do_op = code_seq_concat(do_op, code_div(V0, AT));
 	// HI = E1 % E2
-	bail_with_error("TODO: no implementation of gen_code_odd_condition yet!");
-	return code_seq_empty();
+	// MFHI $v0
+	do_op = code_seq_concat(do_op, code_mfhi(V0));
+	// BEQ $v0, 0, 2
+	do_op = code_seq_add_to_end(do_op, code_beq(V0, 0, 2));
+
+	ret = code_seq_concat(ret, do_op);
+
+	// put 0 (false) in $v0
+    // ADD $0, $0, $v0
+    ret = code_seq_add_to_end(ret, code_add(0, 0, V0));
+    // jump over next instr
+    // BEQ $0, $0, 1
+    ret = code_seq_add_to_end(ret, code_beq(0, 0, 1));
+    // put 1 (true) in $v0
+    // ADDI $0, $v0, 1
+    ret = code_seq_add_to_end(ret, code_addi(0, V0, 1));
+    // now $v0 has the truth value
+    // code to push $v0 on top of stack
+    ret = code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
+	return ret;
 }
 
 // Generate code for cond, putting its truth value
@@ -470,14 +558,10 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
     code_seq ret = gen_code_expr(*(exp.expr1));
     // code to evaluate E2
     ret = code_seq_concat(ret, gen_code_expr(*(exp.expr2)));
-    // code to push E2's value into $AT
-    ret = code_seq_concat(ret, code_pop_stack_into_reg(T2));
-    // code to push E1's value into $V0
-    ret = code_seq_concat(ret, code_pop_stack_into_reg(T1));
-    // OP $V0, $AT, $V0
-    ret = code_seq_concat(ret, gen_code_arith_op(exp.arith_op));
-    // code to push $V0 on the stack
-    return code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
+    // check that the types match
+    assert(exp.expr1->expr_kind == exp.expr2->expr_kind);
+    // do the operation, put the result on the stack
+    return code_seq_concat(ret, gen_code_arith_op(exp.arith_op));
 }
 
 // Generate code to apply arith_op to the
@@ -487,30 +571,29 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 // May also modify SP, HI,LO when executed
 code_seq gen_code_arith_op(token_t arith_op)
 {
-//	code_seq ret;
+// code to push E2's value into $AT
+    code_seq ret = code_pop_stack_into_reg(AT);
+    // code to push E1's value into $V0
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+
+    code_seq do_op = code_seq_empty();
 	switch (arith_op.code) 
 	{
-	    case '+':
+	    case plussym:
 	    	// ADD $V0, $AT, $V0
-			return code_add(V0, AT, V0);
+			do_op = code_seq_add_to_end(do_op, code_add(V0, AT, V0));
 			break;
-	    case '-':
+	    case minussym:
 	    	// SUB $V0, $AT, $V0
-			return code_sub(V0, AT, V0);
+	    	do_op = code_seq_add_to_end(do_op, code_sub(V0, AT, V0));
 			break;
-	    case '*':
+	    case multsym:
 	    	// MULT $V0, $AT
-	    	// use MFHI and MFLO
-//			ret = code_mul(V0, AT);
-//			ret = code_seq_concat(ret, code_push_reg_on_stack(LO));
-//			return code_seq_add_to_end(ret, code_push_reg_on_stack(HI));
+			do_op = code_seq_add_to_end(do_op, code_mul(V0, AT));
 			break;
-	    case '/':
+	    case divsym:
 	    	// DIV $V0, $at
-	    	// use MFHI and MFLO
-//			ret = code_div(V0, AT);
-//			ret = code_seq_concat(ret, code_push_reg_on_stack(LO));
-//			return code_seq_add_to_end(ret, code_push_reg_on_stack(HI));
+	    	do_op = code_seq_add_to_end(do_op, code_div(V0, AT));
 			break;
 	    default:
 			bail_with_error("gen_code_arith_op passed AST with bad op!");
@@ -518,8 +601,8 @@ code_seq gen_code_arith_op(token_t arith_op)
 			return code_seq_empty();
     }
 
-    // to get rid of warnings
-    return code_seq_empty();
+    do_op = code_seq_concat(do_op, code_push_reg_on_stack(V0));
+    return code_seq_concat(ret, do_op);
 }
 
 // Generate code to put the value of the given identifier
@@ -527,23 +610,16 @@ code_seq gen_code_arith_op(token_t arith_op)
 // Modifies T9, V0, and SP when executed
 code_seq gen_code_ident(ident_t id)
 {
-	// no procedures, FP is the frame pointer for the AR
+	assert(id.idu != NULL);
 
-	// There are 2 instructions generated for each identifier declared
-	// (one to allocate space and another to initialize that space)
+	code_seq ret = code_compute_fp(T9, id.idu->levelsOutward);
+	assert(id_use_get_attrs(id.idu) != NULL);
 
-	// allocate space
-	code_seq ret = code_addi(SP, SP, -4);
+	unsigned int ofst = id_use_get_attrs(id.idu)->offset_count;
+	assert(ofst <= USHRT_MAX);
 
-	// initialize that space (below)
-	// get offset of id from the literal table
-	unsigned short ofst = id_use_get_attrs(id.idu)->offset_count;
-	// LW $fp, $at, ofst
-	ret = code_lw(FP, V0, ofst);
-	// push reg onto stack
-	ret = code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
-
-	return ret;
+	ret = code_seq_add_to_end(ret, code_lw(T9, V0, ofst));
+	return code_seq_concat(ret, code_push_reg_on_stack(V0)); 
 }
 
 // Generate code to put the given number on top of the stack
