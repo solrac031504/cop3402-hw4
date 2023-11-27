@@ -340,8 +340,22 @@ code_seq gen_code_if_stmt(if_stmt_t stmt)
 // Generate code for the if-statment given by stmt
 code_seq gen_code_while_stmt(while_stmt_t stmt)
 {
-	bail_with_error("TODO: no implementation of gen_code_while_stmt yet!");
-	return code_seq_empty();
+	// code to push C's truth value on top of stack
+	// code to pop top of stack into $v0
+	code_seq ret = gen_code_condition(stmt.condition);
+
+	code_seq body = gen_code_stmt(*(stmt.body));
+	int cbody_len = code_seq_size(body);
+
+	// BEQ $0, $v0, [length(S) + 1] # skip S if false (goto exitLoop)
+	ret = code_seq_concat(ret, code_beq(0, V0, cbody_len + 1));
+	// code for S
+	ret = code_seq_concat(ret, body);
+	// BEQ $0, $0, -(length(S) + length(C) + 1) # jump back (goto cond)
+	ret = code_seq_concat(ret ,code_beq(0, 0, -1 * (code_seq_size(ret) + code_seq_size(body))));
+	// exitLoop
+
+	return ret;
 }
 
 // Generate code for the read statment given by stmt
