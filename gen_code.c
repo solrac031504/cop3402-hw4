@@ -9,6 +9,7 @@
 #include "literal_table.h"
 #include "regname.h"
 #include "utilities.h"
+#include "pl0.tab.h"
 
 #define STACK_SPACE 4096
 
