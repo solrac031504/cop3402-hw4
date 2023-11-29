@@ -334,7 +334,7 @@ code_seq gen_code_if_stmt(if_stmt_t stmt)
 	int cthen_len = code_seq_size(cthen);
 	int celse_len = code_seq_size(celse);
 	// skip over then (body) if $v0 contains false
-	ret = code_seq_concat(ret, code_beq(V0, 0, cthen_len));
+	ret = code_seq_concat(ret, code_beq(V0, 0, cthen_len + 1));
 	ret = code_seq_concat(ret, cthen);
 
 	// skip else if $v0 is true ($v0 is not 0)
