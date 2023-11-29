@@ -165,7 +165,8 @@ code_seq gen_code_const_def(const_def_t cdf)
 
 	// initialize the variables
 	ret = code_seq_concat(ret, code_lw(GP, AT, ofst));
-	ret = code_seq_concat(ret, code_sw(SP, AT, ofst));
+	ret = code_seq_concat(ret, code_addi(SP, SP, -4));
+	ret = code_seq_concat(ret, code_sw(SP, AT, 0));
 
 	return ret;
 }
