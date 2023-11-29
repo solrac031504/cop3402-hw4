@@ -224,7 +224,7 @@ code_seq gen_code_idents(idents_t idents)
 
 // dont need to implement
 // (Stub for:) Generate code for the procedure declarations
-code_seq gen_code_proc_decls(proc_decls_t pds)
+void gen_code_proc_decls(proc_decls_t pds)
 {
 	bail_with_error("TODO: no implementation of gen_code_proc_decls yet!");
 	return code_seq_empty();
@@ -232,7 +232,7 @@ code_seq gen_code_proc_decls(proc_decls_t pds)
 
 // don't need to implement
 // (Stub for:) Generate code for a procedure declaration
-code_seq gen_code_proc_decl(proc_decl_t pd)
+void gen_code_proc_decl(proc_decl_t pd)
 {
 	bail_with_error("TODO: no implementation of gen_code_proc_decl yet!");
 	return code_seq_empty();
