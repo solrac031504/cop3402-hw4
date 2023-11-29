@@ -347,7 +347,10 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 {
 	// code to push C's truth value on top of stack
 	// code to pop top of stack into $v0
-	code_seq ret = gen_code_condition(stmt.condition);
+	code_seq ret = code_seq_empty();
+	code_seq cond = gen_code_condition(stmt.condition);
+	ret = code_seq_concat(ret, cond);
+	int cond_len = code_seq_size(cond);
 
 	code_seq body = gen_code_stmt(*(stmt.body));
 	int cbody_len = code_seq_size(body);
@@ -357,7 +360,7 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 	// code for S
 	ret = code_seq_concat(ret, body);
 	// BEQ $0, $0, -(length(S) + length(C) + 1) # jump back (goto cond)
-	ret = code_seq_concat(ret ,code_beq(0, 0, -1 * (code_seq_size(ret) + code_seq_size(body) + 1)));
+	ret = code_seq_concat(ret ,code_beq(0, 0, -1 * (cond_len + cbody_len + 1)));
 	// exitLoop
 
 	return ret;
