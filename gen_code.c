@@ -353,7 +353,7 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 	// code for S
 	ret = code_seq_concat(ret, body);
 	// BEQ $0, $0, -(length(S) + length(C) + 1) # jump back (goto cond)
-	ret = code_seq_concat(ret ,code_beq(0, 0, -1 * (code_seq_size(ret) + code_seq_size(body))));
+	ret = code_seq_concat(ret ,code_beq(0, 0, -1 * (code_seq_size(ret) + code_seq_size(body) + 1)));
 	// exitLoop
 
 	return ret;
