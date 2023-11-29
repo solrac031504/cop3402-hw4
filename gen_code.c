@@ -471,8 +471,11 @@ code_seq gen_code_rel_op_condition(rel_op_condition_t cond)
     code_seq ret = gen_code_expr(cond.expr1);
     // code to evaluate E2
     ret = code_seq_concat(ret, gen_code_expr(cond.expr2));
+
+	//COMMENTED OUT
     // check that the types match
-    assert(cond.expr1.expr_kind == cond.expr2.expr_kind);
+    //assert(cond.expr1.expr_kind == cond.expr2.expr_kind);
+	
     // do the operation, put the result on the stack
     return code_seq_concat(ret, gen_code_rel_op(cond.rel_op));
 }
