@@ -435,29 +435,22 @@ code_seq gen_code_odd_condition(odd_condition_t cond)
 	// if GPR[$v0] % 2 == 0
 	// $at = 2
 	// ADDI AT, AT, 2
-	code_seq do_op = code_seq_singleton(code_addi(AT, AT, 2));
+	code_seq do_op = code_seq_singleton(code_addi(0, AT, 2));
 	// DIV $v0, $at
 	do_op = code_seq_concat(do_op, code_div(V0, AT));
 	// HI = E1 % E2
 	// MFHI $v0
 	do_op = code_seq_concat(do_op, code_mfhi(V0));
-	// BEQ $v0, 0, 2
-	do_op = code_seq_add_to_end(do_op, code_beq(V0, 0, 2));
 
 	ret = code_seq_concat(ret, do_op);
 
-	// put 0 (false) in $v0
-    // ADD $0, $0, $v0
-    ret = code_seq_add_to_end(ret, code_add(0, 0, V0));
-    // jump over next instr
-    // BEQ $0, $0, 1
-    ret = code_seq_add_to_end(ret, code_beq(0, 0, 1));
-    // put 1 (true) in $v0
-    // ADDI $0, $v0, 1
-    ret = code_seq_add_to_end(ret, code_addi(0, V0, 1));
-    // now $v0 has the truth value
-    // code to push $v0 on top of stack
+	// Set GPR[$at] = 1
+	ret = code_seq_concat(ret, code_addi(0, AT, 1));
+	// if GPR[$v0] = 1, then E1 is odd. 1 XOR 1 = 0 (false)
+	// if GPR[$v0] = 0, then E1 is even. 0 XOR 1 = 1 (true)
+	ret = code_seq_concat(ret, code_xor(V0, V0, AT));
     ret = code_seq_add_to_end(ret, code_push_reg_on_stack(V0));
+
 	return ret;
 }
 
