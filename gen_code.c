@@ -123,7 +123,7 @@ code_seq gen_code_const_decls(const_decls_t cds)
 
     while (cd != NULL) 
     {
-		ret = code_seq_concat(ret, gen_code_const_decl(*cd));
+		ret = code_seq_concat(gen_code_const_decl(*cd), ret);
 		cd = cd->next;
     }
 
