@@ -40,12 +40,15 @@ static BOFHeader gen_code_program_header(code_seq code)
 {
 	BOFHeader ret;
     strcpy(ret.magic, "BOF");
+	// PC
     ret.text_start_address = 0;
     ret.text_length = code_seq_size(code) * BYTES_PER_WORD;
     int dsa = max(ret.text_length, 1024);
+	// GP
     ret.data_start_address = dsa;
     ret.data_length = literal_table_size() * BYTES_PER_WORD;
     int sba = dsa + ret.data_start_address + ret.data_length + STACK_SPACE;
+	// FP
     ret.stack_bottom_addr = sba;
     return ret;
 }
